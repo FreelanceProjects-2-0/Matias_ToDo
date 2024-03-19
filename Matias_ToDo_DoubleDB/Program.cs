@@ -5,6 +5,7 @@ using Matias_ToDo_DoubleDB.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +52,10 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser();
     });
 
+    options.AddPolicy("HasCPR", policy =>
+    {
+        policy.RequireClaim("CPR");
+    }); 
     options.AddPolicy("RequireAdminRole", policy =>
     {
         policy.RequireRole("Admin");
@@ -71,21 +76,21 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequiredUniqueChars = 1;
 });
 
-//string userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-//userFolder = Path.Combine(userFolder, ".aspnet", "https", "ToDo.pfx");
-//builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate:Path").Value = userFolder;
+string userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+userFolder = Path.Combine(userFolder, ".aspnet", "https", "ToDo.pfx");
+builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate:Path").Value = userFolder;
 
-//string kestrelPass = builder.Configuration.GetValue<string>("KestrelCertPassword");
-//builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate:Password").Value = kestrelPass;
+string kestrelPass = builder.Configuration.GetValue<string>("KestrelCertPassword");
+builder.Configuration.GetSection("Kestrel:Endpoints:Https:Certificate:Password").Value = kestrelPass;
 
-//builder.WebHost.UseKestrel((context, serverOptions) =>
-//{
-//    serverOptions.Configure(context.Configuration.GetSection("Kestrel"))
-//        .Endpoint("HTTPS", ListenOptions =>
-//        {
-//            ListenOptions.HttpsOptions.SslProtocols = SslProtocols.Tls13;
-//        });
-//});
+builder.WebHost.UseKestrel((context, serverOptions) =>
+{
+    serverOptions.Configure(context.Configuration.GetSection("Kestrel"))
+        .Endpoint("HTTPS", ListenOptions =>
+        {
+            ListenOptions.HttpsOptions.SslProtocols = SslProtocols.Tls13;
+        });
+});
 
 var app = builder.Build();
 
