@@ -9,9 +9,6 @@ namespace Matias_ToDo_DoubleDB.Data.Models.Entities
 
         public Guid IdentityId { get; set; }
 
-        public required string Title { get; set; }
-
         public required List<ToDoItem> Items { get; set; }
-
     }
 }

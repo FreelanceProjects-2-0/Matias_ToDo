@@ -12,7 +12,6 @@ public class CprService : ICprService
 {
     private readonly ApplicationDbContext _appDbContext;
     private readonly IRoleService _roleService;
-    //@inject Code.Services.IRoleService _roleService;
     private readonly DataDBContext _dataDbContext;
     private readonly ILogger _logger;
     UserManager<ApplicationUser> _userManager;
@@ -70,8 +69,6 @@ public class CprService : ICprService
 
     public async Task<bool> Save()
     {
-        var a = await _dataDbContext.SaveChangesAsync();
-        _logger.LogDebug($"{a}");
-        return a > 0;
+        return await _dataDbContext.SaveChangesAsync() > 0;
     }
 }

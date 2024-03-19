@@ -13,6 +13,7 @@
         <div>
             <h1>User: @context.User.Identity?.Name</h1>
             <h4>Enter CPR-number:</h4>
+            <p>If already having the "CPR" role: Submit button should verify existing user and redirect to "to-do" - If user has entered wrong CPR BE ANGRY</p>
             <input type="text" @bind-value="@cprNumber" />
             <br />
             @* <button @onclick="registerCpr">Submit</button> *@

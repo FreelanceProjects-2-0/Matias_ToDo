@@ -14,11 +14,13 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<ICprService, CprService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IToDoService, ToDoService>();
 
 builder.Services.AddAuthentication(options =>
     {

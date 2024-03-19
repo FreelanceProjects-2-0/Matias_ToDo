@@ -1,9 +1,36 @@
 ﻿@page "/todoList"
+@using Matias_ToDo_DoubleDB.Data.Models.Entities;
+@inject Code.Services.IToDoService _todoService
+@inject IHttpContextAccessor httpContextAccessor
+
 <PageTitle>ToDo</PageTitle>
 
 <AuthorizeView Roles="CPR">
     <Authorized>
-        <h3>HEJ</h3>
+        <div>
+            <input @bind="newTaskTitle" placeholder="Title here" />
+            <input @bind="newTaskDescription" placeholder="Description here" />
+            <button @onclick="addTask">Add</button>
+        </div>
+        @if (taskList != null)
+        {
+            <div>
+                <h2>@taskList.Id</h2>
+                <ul>
+                    @foreach (ToDoItem task in taskList.Items)
+                    {
+                        <li>
+                            <h3>
+                                @task.Title
+                            </h3>
+                            <h4>
+                                @task.Description
+                            </h4>
+                        </li>
+                    } 
+                </ul>
+            </div>
+        }
     </Authorized>
     <NotAuthorized>
         <h3>Farvel</h3>
@@ -11,5 +38,17 @@
 </AuthorizeView>
 
 @code {
+    private string newTaskTitle = string.Empty;
+    private string newTaskDescription = string.Empty;
+    ToDoList taskList;
 
+    protected override async Task OnInitializedAsync()
+    {
+        taskList = await _todoService.GetTasks(httpContextAccessor?.HttpContext?.User?.Identity?.Name!);
+    }
+
+    private void addTask()
+    {
+        
+    }
 }
