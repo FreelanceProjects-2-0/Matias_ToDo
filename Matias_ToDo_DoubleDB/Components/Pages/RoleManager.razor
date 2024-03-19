@@ -1,0 +1,42 @@
+﻿@page "/roleManagement"
+@using Matias_ToDo_DoubleDB.Data
+@inject Code.Services.IRoleService _roleService;
+@inject IServiceProvider _serviceProvider;
+@inject ILogger<RoleManager> Logger
+@inject IHttpContextAccessor httpContextAccessor
+
+@* Locks the whole page and should give access denied*@
+@* @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]  *@
+
+<PageTitle>Add Role to User</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <input type="text" @bind-value="@userEmail" />
+        <input type="text" @bind-value="@input_role" />
+        <button @onclick="addAdminToUser">
+            Click me
+        </button>
+    </Authorized>
+    <NotAuthorized>
+        Du har ingen rettigheder
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    string userEmail = "matiasgrimm@gmail.com";
+    private string input_role = "";
+    protected async Task addAdminToUser()
+    {
+        Logger.LogInformation($"Email : {userEmail}");
+        if (!String.IsNullOrEmpty(userEmail.Trim()))
+        {
+            Logger.LogInformation($"role : {input_role}");
+            if (!String.IsNullOrEmpty(input_role.Trim()))
+            {
+                var response = await _roleService.CreateUserRole(input_role, _serviceProvider, userEmail);
+                Logger.LogInformation($"Succeeded : {response}");
+            }
+        }
+    }
+}

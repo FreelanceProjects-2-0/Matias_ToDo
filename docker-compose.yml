@@ -1,0 +1,8 @@
+version: '3.4'
+
+services:
+  matias_todo_doubledb:
+    image: ${DOCKER_REGISTRY-}matiastododoubledb
+    build:
+      context: .
+      dockerfile: Matias_ToDo_DoubleDB\Dockerfile
