@@ -1,7 +1,8 @@
-﻿@page "/todoList"
+﻿@* @page "/todoList" *@
 @using Matias_ToDo_DoubleDB.Data.Models.Entities;
 @inject Code.Services.IToDoService _todoService
 @inject IHttpContextAccessor httpContextAccessor
+@inject ILogger<ToDo> Logger
 
 <PageTitle>ToDo</PageTitle>
 
@@ -30,7 +31,7 @@
                     } 
                 </ul>
             </div>
-        }
+            }
     </Authorized>
     <NotAuthorized>
         <h3>Farvel</h3>
@@ -49,6 +50,6 @@
 
     private void addTask()
     {
-        
+            
     }
 }

@@ -12,12 +12,13 @@ public class CprService : ICprService
 {
     private readonly ApplicationDbContext _appDbContext;
     private readonly IRoleService _roleService;
+    private readonly IHashingService _hashingService;
     private readonly DataDBContext _dataDbContext;
     private readonly ILogger _logger;
     UserManager<ApplicationUser> _userManager;
     IServiceProvider _serviceProvider;
 
-    public CprService(ApplicationDbContext appDbContext, DataDBContext dataDbContext, IRoleService roleService, ILogger<CprService> logger, IServiceProvider serviceProvider)
+    public CprService(ApplicationDbContext appDbContext, DataDBContext dataDbContext, IRoleService roleService, ILogger<CprService> logger, IServiceProvider serviceProvider, IHashingService hashingService)
     {
         _appDbContext = appDbContext;
         _dataDbContext = dataDbContext;
@@ -25,26 +26,34 @@ public class CprService : ICprService
         _serviceProvider = serviceProvider;
         _userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         _roleService = roleService;
+        _hashingService = hashingService;
     }
 
+    /// <summary>
+    /// CPR will be hashed in this function
+    /// </summary>
+    /// <param name="cpr"></param>
+    /// <param name="email"></param>
+    /// <returns></returns>
     public async Task<bool> AddCprToUser(string cpr, string userEmail)
     {
         try
         {
             bool exists = await IsExisting(userEmail);
+            var hashedCpr = _hashingService.BCryptHashing(cpr);
             if (!exists)
             {
                 ApplicationUser? appUser = await _userManager.FindByEmailAsync(userEmail.ToUpper());
                 if (appUser != null)
                 {
-                    Cpr cprRecord = new Cpr { UserMail = appUser.Email!.ToLower(), IdentityId = Guid.Parse(appUser.Id), CprNumber = cpr };
+                    Cpr cprRecord = new Cpr { UserMail = appUser.Email!.ToLower(), IdentityId = Guid.Parse(appUser.Id), CprNumber = hashedCpr };
                     _dataDbContext.Cprs.Add(cprRecord);
                     var response = await _roleService.CreateUserRole("CPR", _serviceProvider, userEmail);
                     _logger.LogInformation($"Response 2: {response}");
                     return await Save();
                 }
             }
-            else if (await CheckCprAsync(cpr, userEmail))
+            else if (await CheckCprAsync(hashedCpr, userEmail))
             {
                 _logger.LogInformation($"Davs");
                 return true;
@@ -64,7 +73,8 @@ public class CprService : ICprService
 
     private async Task<bool> CheckCprAsync(string cpr, string email)
     {
-        return await _dataDbContext.Cprs.AnyAsync(x => x.UserMail.ToLower() == email.ToLower() && x.CprNumber == cpr);
+        var dbCprNumber = (await _dataDbContext.Cprs.FirstOrDefaultAsync(x => x.UserMail.Equals(email, StringComparison.CurrentCultureIgnoreCase) && x.CprNumber == cpr))!.CprNumber;
+        return _hashingService.BCryptHashValidator(cpr, dbCprNumber);
     }
 
     public async Task<bool> Save()

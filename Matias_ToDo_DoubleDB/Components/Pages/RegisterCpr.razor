@@ -1,15 +1,19 @@
-﻿@page "/registerCpr"
+﻿@using Matias_ToDo_DoubleDB.Code.Services
 @using Matias_ToDo_DoubleDB.Data
 @inject Code.Services.ICprService _cprService;
 @inject IServiceProvider _serviceProvider;
 @inject ILogger<RegisterCpr> Logger
 @inject IHttpContextAccessor httpContextAccessor
+@* @inject IHashingService _hashingService *@
 @inject NavigationManager NavManager
 
 <PageTitle>Register CPR</PageTitle>
 
 <AuthorizeView>
     <Authorized>
+        @if (!isVerified)
+        {
+            
         <div>
             <h1>User: @context.User.Identity?.Name</h1>
             <h4>Enter CPR-number:</h4>
@@ -18,7 +22,12 @@
             <br />
             @* <button @onclick="registerCpr">Submit</button> *@
             <button class="button-85" role="button" @onclick="registerCpr">Submit</button>
-        </div>
+            </div>
+        }
+        else
+        {
+            <ToDo/>
+        }
     </Authorized>
     <NotAuthorized>
         <h1>No permissions for this site</h1>
@@ -26,6 +35,7 @@
 </AuthorizeView>
                                                         
 @code {
+    private bool isVerified = false;
     private bool loading = false;                                    
     private string cprNumber = string.Empty;                          
     protected async Task registerCpr()                      
@@ -38,7 +48,7 @@
             Logger.LogInformation($"Response : {response}");
             if (response)
             {
-                NavManager.NavigateTo("/todoList");
+                isVerified = true;
             }
             loading = false;
         }

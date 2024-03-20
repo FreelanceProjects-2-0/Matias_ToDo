@@ -6,8 +6,14 @@
 @using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
 @using Matias_ToDo_DoubleDB.Data
+
 @using Microsoft.AspNetCore.WebUtilities
-@using QRCoder
+@using SkiaSharp;
+@using SkiaSharp.QrCode
+@using SkiaSharp.QrCode.Image;
+@using System;
+@using System.IO;
+
 
 @inject IdentityUserAccessor UserAccessor
 @inject UrlEncoder UrlEncoder
@@ -112,13 +118,26 @@
 
     private void GenerateQrImage(string authenticatorUri)
     {
-        QRCodeGenerator qrGenerator = new QRCodeGenerator();
-        QRCodeData qrCodeData = qrGenerator.CreateQrCode(authenticatorUri, QRCodeGenerator.ECCLevel.Q);
-        QRCode qrCode = new QRCode(qrCodeData);
+        using var generator = new QRCodeGenerator();
+        var qr = generator.CreateQrCode(authenticatorUri, ECCLevel.Q);
+        var info = new SKImageInfo(300, 300);
+        using var surface = SKSurface.Create(info);
+        var canvas = surface.Canvas;
+        canvas.Render(qr, info.Width, info.Height);
+
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        Stream stream = data.AsStream();
 
         using MemoryStream ms = new ();
-        using System.Drawing.Bitmap qrBitmap = qrCode.GetGraphic(20);
-        qrBitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+
+        byte[] buffer = new byte[4096];
+        int bytesRead = 0;
+
+        while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+            ms.Write(buffer, 0, bytesRead);
+        ms.Seek(0, SeekOrigin.Begin);
+
         string base64String = Convert.ToBase64String(ms.ToArray());
 
         _qrImageSrc = $"data:image/png;base64,{base64String}";
