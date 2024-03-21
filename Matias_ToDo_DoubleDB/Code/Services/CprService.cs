@@ -53,7 +53,7 @@ public class CprService : ICprService
                     return await Save();
                 }
             }
-            else if (await CheckCprAsync(hashedCpr, userEmail))
+            else if (await CheckCprAsync(cpr, userEmail))
             {
                 _logger.LogInformation($"Davs");
                 return true;
@@ -73,7 +73,7 @@ public class CprService : ICprService
 
     private async Task<bool> CheckCprAsync(string cpr, string email)
     {
-        var dbCprNumber = (await _dataDbContext.Cprs.FirstOrDefaultAsync(x => x.UserMail.Equals(email, StringComparison.CurrentCultureIgnoreCase) && x.CprNumber == cpr))!.CprNumber;
+        var dbCprNumber = (await _dataDbContext.Cprs.FirstOrDefaultAsync(x => x.UserMail.ToUpper() == email.ToUpper()))!.CprNumber;
         return _hashingService.BCryptHashValidator(cpr, dbCprNumber);
     }
 
