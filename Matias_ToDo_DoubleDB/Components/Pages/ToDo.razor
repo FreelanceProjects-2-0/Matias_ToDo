@@ -1,55 +1,98 @@
-﻿@* @page "/todoList" *@
-@using Matias_ToDo_DoubleDB.Data.Models.Entities;
+﻿@using Matias_ToDo_DoubleDB.Data.Models.Entities;
 @inject Code.Services.IToDoService _todoService
 @inject IHttpContextAccessor httpContextAccessor
 @inject ILogger<ToDo> Logger
+@inject AuthenticationStateProvider authStateProvider
 
 <PageTitle>ToDo</PageTitle>
 
-<AuthorizeView Roles="CPR">
-    <Authorized>
-        <div>
-            <input @bind="newTaskTitle" placeholder="Title here" />
-            <input @bind="newTaskDescription" placeholder="Description here" />
-            <button @onclick="addTask">Add</button>
-        </div>
-        @if (taskList != null)
-        {
-            <div>
-                <h2>@taskList.Id</h2>
-                <ul>
-                    @foreach (ToDoItem task in taskList.Items)
-                    {
-                        <li>
-                            <h3>
-                                @task.Title
-                            </h3>
-                            <h4>
-                                @task.Description
-                            </h4>
-                        </li>
-                    } 
-                </ul>
-            </div>
+<div class="w-50 bg-opacity-25 bg-black rounded-1" style="margin-inline: auto;">
+    <div class="text-center">
+        <input @bind="newTaskTitle" placeholder="Task here" /><br />
+        <button @onclick="addTask" class="w-50 btn btn-lg btn-primary">Add</button>
+        <AuthorizeView Roles="Admin">
+            @if (taskList != null)
+            {
+                @if (taskList.Count() > 0)
+                {
+                    <button @onclick="deleteAllTasks" class="w-50 btn btn-lg btn-primary my-3">Remove</button>
+                }
             }
-    </Authorized>
-    <NotAuthorized>
-        <h3>Farvel</h3>
-    </NotAuthorized>
-</AuthorizeView>
+        </AuthorizeView>
+    </div>
+    @if (taskList != null)
+    {
+        <div>
+            @if (taskList != null)
+            {
+                <ul>
+                    @foreach (ToDoItem task in taskList)
+                    {
+                        <li class="border_list">
+                            <span style="display: flex">
+                                <p>Task: @task.Title</p>
+                                <button @onclick="() => removeItem(task.Id)" class="w-25 btn btn-lg btn-primary bg-warning">Remove</button>
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+
+</div>
+<style>
+    .border_list {
+        border: 1px solid rgba(0, 0, 0, 0.8);
+        width: 450px;
+    }
+</style>
 
 @code {
     private string newTaskTitle = string.Empty;
-    private string newTaskDescription = string.Empty;
-    ToDoList taskList;
+    List<ToDoItem> taskList;
+    string userEmail = string.Empty;
 
-    protected override async Task OnInitializedAsync()
+    private async Task refresh(bool response)
+    {
+        if (response)
+        {
+            await getTaskList();
+            clearFields();
+            StateHasChanged();
+        }
+    }
+
+    private void clearFields()
+    {
+        newTaskTitle = string.Empty;
+    }
+
+    private async Task getTaskList()
     {
         taskList = await _todoService.GetTasks(httpContextAccessor?.HttpContext?.User?.Identity?.Name!);
     }
 
-    private void addTask()
+    protected override async Task OnInitializedAsync()
     {
-            
+        await getTaskList();
+        userEmail = httpContextAccessor!.HttpContext!.User!.Identity!.Name!;
+    }
+
+    private async void addTask()
+    {
+        var response = await _todoService.AddTask(userEmail, newTaskTitle);
+        await refresh(response);
+    }
+    private async void removeItem(Guid id)
+    {
+        var response = await _todoService.RemoveItem(userEmail, id);
+        await refresh(response);
+    }
+
+    private async void deleteAllTasks()
+    {
+        var response = await _todoService.AdminDeleteAllTasks(userEmail);
+        await refresh(response);
     }
 }

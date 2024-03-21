@@ -21,7 +21,8 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 builder.Services.AddScoped<ICprService, CprService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IToDoService, ToDoService>();
-builder.Services.AddScoped<IHashingService, HashingService>();
+builder.Services.AddSingleton<IHashingService, HashingService>();
+builder.Services.AddSingleton<IAsymmetricEncryptionService, AsymmetricEncryptionService>();
 
 builder.Services.AddAuthentication(options =>
     {

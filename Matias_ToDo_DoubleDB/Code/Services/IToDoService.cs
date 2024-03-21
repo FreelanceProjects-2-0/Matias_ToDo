@@ -4,7 +4,9 @@ namespace Matias_ToDo_DoubleDB.Code.Services
 {
     public interface IToDoService
     {
-        public Task<bool> AddTask(string listId, string title, string description);
-        public Task<ToDoList> GetTasks(string email);
+        public Task<bool> AddTask(string userEmail, string title);
+        public Task<List<ToDoItem>> GetTasks(string userEmail);
+        public Task<bool> RemoveItem(string userEmail, Guid itemId);
+        public Task<bool> AdminDeleteAllTasks(string userEmail);
     }
 }

@@ -1,89 +1,122 @@
 ﻿using Matias_ToDo_DoubleDB.Data;
 using Matias_ToDo_DoubleDB.Data.Models.Entities;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-//using IHttpContextAccessor httpContextAccessor
 
 namespace Matias_ToDo_DoubleDB.Code.Services
 {
     public class ToDoService : IToDoService
     {
-        private readonly ApplicationDbContext _appDbContext;
-        private readonly IRoleService _roleService;
-        private readonly DataDBContext _dataDbContext;
-        private readonly ILogger _logger;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        UserManager<ApplicationUser> _userManager;
-        IServiceProvider _serviceProvider;
-        public ToDoService(DataDBContext dataDbContext, IRoleService roleService, ILogger<ToDoService> logger, IServiceProvider serviceProvider, IHttpContextAccessor httpContextAccessor)
+        private readonly DataDBContext _dbContext;
+        private readonly ApplicationDbContext _context;
+        private readonly IAsymmetricEncryptionService _encryptionService;
+
+        public ToDoService(DataDBContext dataDBContext, ApplicationDbContext context, IAsymmetricEncryptionService asymmetricEncryptionService)
         {
-            _dataDbContext = dataDbContext;
-            _logger = logger;
-            _serviceProvider = serviceProvider;
-            _userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            _httpContextAccessor = httpContextAccessor;
+            _dbContext = dataDBContext;
+            _context = context;
+            _encryptionService = asymmetricEncryptionService;
         }
 
-        public async Task<bool> AddTask(string listId, string title, string description)
+        public async Task<bool> AddTask(string userEmail, string title)
         {
-            _logger.LogTrace($"Adding task {title} to todo-list with id: {listId}.");
+            string userId = _context.Users
+                .Where(x => x.NormalizedEmail == userEmail.ToUpper())
+                .FirstOrDefault().Id;
 
-            string? userEmail = _httpContextAccessor?.HttpContext?.User.Identity?.Name;
+            if (userId == null) throw new Exception($"User with email {userEmail} not found.");
 
-            if (string.IsNullOrEmpty(userEmail)) throw new Exception($"Current user not found in Database {userEmail}");
-
-            Guid userGuid = Guid.Parse((await _userManager.FindByEmailAsync(userEmail.ToUpper()))!.Id);
-
-            ToDoItem item = new() { Title = title, Description = description };
-
-            ToDoList todoList = await NullOrEmptyList(userEmail, userGuid, listId);
-            todoList.Items.Add(item);
-
-            return await Save();
+            title = _encryptionService.EncryptAsymmetric(title);
+            var item = new ToDoItem() { Title = title, IdentityId = Guid.Parse(userId) };
+            await _dbContext.AddAsync(item);
+            return await _dbContext.SaveChangesAsync() > 0;
         }
 
-        public async Task<ToDoList> GetTasks(string userEmail)
+        public async Task<List<ToDoItem>> GetTasks(string userEmail)
         {
-            Guid userGuid = Guid.Parse((await _userManager.FindByEmailAsync(userEmail.ToUpper()))!.Id);
-            ToDoList? todoList = null;
             try
             {
-                todoList = await NullOrEmptyList(userEmail, userGuid, null);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Something went wrong in ToDoService. GetTasks see exception {ex}");
-            }
 
-            return todoList;
+                List<ToDoItem> encryptedTasks = new();
+                string userId = _context.Users
+                    .Where(x => x.NormalizedEmail == userEmail.ToUpper())
+                    .FirstOrDefault().Id;
+
+                if (userId == null) throw new Exception($"User with email {userEmail} not found.");
+
+                string? userPrivateKey = await _dbContext.Cprs
+                    .Where(x => x.IdentityId == Guid.Parse(userId))
+                    .Select(z => z.privateKey)
+                    .FirstOrDefaultAsync();
+
+                if (userPrivateKey != null)
+                {
+                    encryptedTasks = await _dbContext.TodoItems
+                        .Where(x => x.IdentityId == Guid.Parse(userId))
+                        .ToListAsync();
+                }
+                var decryptedTasks = encryptedTasks
+                    .Select(x => new ToDoItem {
+                        Id = x.Id,
+                        IdentityId = x.IdentityId,
+                        Title = _encryptionService
+                            .DecryptAsymmetric(x.Title, userPrivateKey)
+                    })
+                    .ToList();
+
+                return decryptedTasks;
+            }
+            catch (Exception ex) { throw new Exception($"Something went wrong while receiving the tasklist {ex}"); }
         }
-        public async Task<bool> Save()
+
+        public async Task<bool> RemoveItem(string userEmail, Guid itemId)
         {
-            return await _dataDbContext.SaveChangesAsync() > 0;
+            string? userId = _context.Users
+                .Where(x => x.NormalizedEmail == userEmail.ToUpper())
+                .Select(x => x.Id)
+                .FirstOrDefault();
+
+            if (userId == null) throw new Exception($"User with email {userEmail} not found");
+
+            ToDoItem item = await _dbContext.TodoItems
+                .Where(x => x.Id == itemId && x.IdentityId == Guid.Parse(userId))
+                .FirstOrDefaultAsync() ?? throw new Exception($"No item found with id {itemId} for user {userEmail}");
+
+            _dbContext.TodoItems.Remove(item);
+
+            return await _dbContext.SaveChangesAsync() > 0;
         }
 
-        public async Task<ToDoList> NullOrEmptyList(string userEmail, Guid userGuid, string listId) => listId != null
-                ? await _dataDbContext.ToDoLists.FirstOrDefaultAsync(x =>
-                    x.Id == Guid.Parse(listId) && x.IdentityId == userGuid)
-                    ?? throw new Exception($"No todo-list found with Id: {listId} for user with email {userEmail}")
-                : await _dataDbContext.ToDoLists.FirstOrDefaultAsync(x =>
-                    x.IdentityId == userGuid)
-                    ?? throw new Exception($"No todo-list found with Id: {listId} for user with email {userEmail}");
+        public async Task<bool> AdminDeleteAllTasks(string userEmail)
+        {
+            string? userId = _context.Users
+                .Where(x => x.NormalizedEmail == userEmail.ToUpper())
+                .Select(x => x.Id)
+                .FirstOrDefault();
 
+            if (userId == null) throw new Exception($"User with email {userEmail} not found");
 
+            List<string> roleIds = await _context.UserRoles
+                .Where(x => x.UserId == userId)
+                .Select(x => x.RoleId)
+                .ToListAsync();
 
-        //public async Task<ToDoList> NullOrEmptyList2(string userEmail, Guid userGuid, string listId)
-        //{
-        //    //ToDoList? toDoList = null;
+            if (roleIds.Count < 1) throw new Exception($"No roles found for user {userEmail}");
 
-        //    return listId != null 
-        //        ? await _dataDbContext.ToDoLists.FirstOrDefaultAsync(x => 
-        //            x.Id == Guid.Parse(listId) && x.IdentityId == userGuid) 
-        //            ?? throw new Exception($"No todo-list found with Id: {listId} for user with email {userEmail}") 
-        //        : await _dataDbContext.ToDoLists.FirstOrDefaultAsync(x => 
-        //            x.IdentityId == userGuid) 
-        //            ?? throw new Exception($"No todo-list found with Id: {listId} for user with email {userEmail}");
-        //}
+            bool hasAdminRole = await _context.Roles
+                .AnyAsync(x => roleIds
+                    .Any(r => r == x.Id)
+                && x.NormalizedName == "ADMIN");
+
+            if (hasAdminRole)
+            {
+                List<ToDoItem> userToDoList = await _dbContext.TodoItems
+                    .Where(x => x.IdentityId == Guid.Parse(userId))
+                    .ToListAsync();
+
+                _dbContext.TodoItems.RemoveRange(userToDoList);
+            }
+            return await _dbContext.SaveChangesAsync() > 0;
+        }
     }
 }

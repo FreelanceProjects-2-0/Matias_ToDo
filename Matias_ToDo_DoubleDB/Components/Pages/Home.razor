@@ -1,12 +1,46 @@
 ﻿@page "/"
 @inject NavigationManager NavigationManager
+@inject ILogger<Home> Logger
+@inject Code.Services.IRoleService _roleService
+@inject IServiceProvider _serviceProvider
+@inject IHttpContextAccessor httpContextAccessor
+
+
 <PageTitle>Home</PageTitle>
 
 <AuthorizeView>
     <Authorized>
-        <RegisterCpr/>
+        <div>
+            <h1>Add role to user</h1>
+            <input placeholder="Enter mail" type="text" @bind-value="@userEmail" />
+            <input type="text" @bind-value="@input_role" />
+            <button @onclick="addAdminToUser">
+                Click me
+            </button>
+        </div>
+        <br />
+        <RegisterCpr />
     </Authorized>
     <NotAuthorized>
-        <h1>You no authorized</h1>
+        <h1>Authorized not you are</h1>
     </NotAuthorized>
 </AuthorizeView>
+
+
+@code {
+    string userEmail = "matiasgrimm@gmail.com";
+    private string input_role = "";
+    protected async Task addAdminToUser()
+    {
+        Logger.LogInformation($"Email : {userEmail}");
+        if (!String.IsNullOrEmpty(userEmail.Trim()))
+        {
+            Logger.LogInformation($"role : {input_role}");
+            if (!String.IsNullOrEmpty(input_role.Trim()))
+            {
+                var response = await _roleService.CreateUserRole(input_role, _serviceProvider, userEmail);
+                Logger.LogInformation($"Succeeded : {response}");
+            }
+        }
+    }
+}

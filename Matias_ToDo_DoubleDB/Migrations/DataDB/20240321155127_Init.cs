@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Matias_ToDo_DoubleDB.Migrations.DataDB
 {
     /// <inheritdoc />
-    public partial class Add_Cpr : Migration
+    public partial class Init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -24,6 +24,19 @@ namespace Matias_ToDo_DoubleDB.Migrations.DataDB
                 {
                     table.PrimaryKey("PK_Cprs", x => x.Id);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "TodoItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IdentityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TodoItems", x => x.Id);
+                });
         }
 
         /// <inheritdoc />
@@ -31,6 +44,9 @@ namespace Matias_ToDo_DoubleDB.Migrations.DataDB
         {
             migrationBuilder.DropTable(
                 name: "Cprs");
+
+            migrationBuilder.DropTable(
+                name: "TodoItems");
         }
     }
 }

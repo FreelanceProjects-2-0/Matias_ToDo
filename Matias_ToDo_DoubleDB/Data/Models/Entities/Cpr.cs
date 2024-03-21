@@ -12,5 +12,7 @@ namespace Matias_ToDo_DoubleDB.Data.Models.Entities
         public required string CprNumber { get; set; }
 
         public string UserMail { get; set; } = string.Empty;
+
+        public string privateKey { get; set; } = string.Empty;
     }
 }

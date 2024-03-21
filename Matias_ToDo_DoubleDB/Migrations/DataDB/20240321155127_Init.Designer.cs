@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Matias_ToDo_DoubleDB.Migrations.DataDB
 {
     [DbContext(typeof(DataDBContext))]
-    [Migration("20240319062602_Add_Cpr")]
-    partial class Add_Cpr
+    [Migration("20240321155127_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -45,6 +45,24 @@ namespace Matias_ToDo_DoubleDB.Migrations.DataDB
                     b.HasKey("Id");
 
                     b.ToTable("Cprs");
+                });
+
+            modelBuilder.Entity("Matias_ToDo_DoubleDB.Data.Models.Entities.ToDoItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("IdentityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TodoItems");
                 });
 #pragma warning restore 612, 618
         }

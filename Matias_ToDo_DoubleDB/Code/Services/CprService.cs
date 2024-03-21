@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Security.Cryptography;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Matias_ToDo_DoubleDB.Code.Services;
@@ -46,7 +47,9 @@ public class CprService : ICprService
                 ApplicationUser? appUser = await _userManager.FindByEmailAsync(userEmail.ToUpper());
                 if (appUser != null)
                 {
-                    Cpr cprRecord = new Cpr { UserMail = appUser.Email!.ToLower(), IdentityId = Guid.Parse(appUser.Id), CprNumber = hashedCpr };
+
+                    string? key = new AsymmetricEncryptionService()._privateKey;
+                    Cpr cprRecord = new Cpr { UserMail = appUser.Email!.ToLower(), IdentityId = Guid.Parse(appUser.Id), CprNumber = hashedCpr, privateKey = key };
                     _dataDbContext.Cprs.Add(cprRecord);
                     var response = await _roleService.CreateUserRole("CPR", _serviceProvider, userEmail);
                     _logger.LogInformation($"Response 2: {response}");
