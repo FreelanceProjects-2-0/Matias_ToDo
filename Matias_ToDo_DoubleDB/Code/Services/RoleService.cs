@@ -1,5 +1,7 @@
 ﻿using Matias_ToDo_DoubleDB.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Matias_ToDo_DoubleDB.Code.Services;
 
@@ -29,18 +31,15 @@ public class RoleService : IRoleService
         }
 
         return roleSuccess | userSuccess;
+    }
 
-        //if (roleResponse != null && roleResponse.Succeeded)
-        //{
-        //    if (userResponse != null && userResponse.Succeeded)
-        //    {
-        //        return true;
-        //    }
-        //    Console.WriteLine($"userResponse");
-        //    return false;
-        //}
+    public async Task<bool> IsUserAdmin(string userEmail, IServiceProvider serviceProvider)
+    {
+        UserManager<ApplicationUser> userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-        //return false;
+        var user = await userManager.Users.Where(x => x.NormalizedEmail == userEmail.ToUpper()).FirstOrDefaultAsync();
+        if (user == null) throw new Exception($"Something went wrong while trying to fetch user from DB");
+        return await userManager.IsInRoleAsync(user, "Admin");
     }
 }
 

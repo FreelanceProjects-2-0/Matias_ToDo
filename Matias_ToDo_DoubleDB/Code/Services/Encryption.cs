@@ -7,12 +7,12 @@ namespace Matias_ToDo_DoubleDB.Code.Services
 
         public static string Encrypter(string textToEncrypt, string publicKey)
         {
-            using (RSA rsa = RSA.Create())
+            using (RSACryptoServiceProvider rsa = new())
             {
                 rsa.FromXmlString(publicKey);
 
                 byte[] byteArrayInputText = System.Text.Encoding.UTF8.GetBytes(textToEncrypt);
-                byte[] encryptedTextByteArray = rsa.Encrypt(byteArrayInputText, RSAEncryptionPadding.OaepSHA256);
+                byte[] encryptedTextByteArray = rsa.Encrypt(byteArrayInputText, true);
 
                 return Convert.ToBase64String(encryptedTextByteArray);
             }

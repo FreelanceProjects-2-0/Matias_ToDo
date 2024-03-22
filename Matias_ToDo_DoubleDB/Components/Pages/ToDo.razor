@@ -3,48 +3,77 @@
 @inject IHttpContextAccessor httpContextAccessor
 @inject ILogger<ToDo> Logger
 @inject AuthenticationStateProvider authStateProvider
+@inject Code.Services.IRoleService _roleService
+@inject IServiceProvider _serviceProvider
 
 <PageTitle>ToDo</PageTitle>
+<AuthorizeView>
 
-<div class="w-50 bg-opacity-25 bg-black rounded-1" style="margin-inline: auto;">
-    <div class="text-center">
-        <input @bind="newTaskTitle" placeholder="Task here" /><br />
-        <button @onclick="addTask" class="w-50 btn btn-lg btn-primary">Add</button>
-        <AuthorizeView Roles="Admin">
-            @if (taskList != null)
+    @* <button @onclick="() => refresh(true)" class="w-15 btn btn-lg btn-primary my-3">Refresh</button> *@
+    <h4>Is Admin : @userIsAdmin</h4>
+
+    <div class="w-50 bg-opacity-25 bg-black rounded-1" style="margin-inline: auto;">
+        <div class="text-center py-2">
+            <input @bind="newTaskTitle" placeholder="Task here" />
+            <button @onclick="addTask" class="w-50 btn btn-md bg-info">Add</button><br />
+            @if (userIsAdmin)
             {
-                @if (taskList.Count() > 0)
+                @if (taskList != null)
                 {
-                    <button @onclick="deleteAllTasks" class="w-50 btn btn-lg btn-primary my-3">Remove</button>
+                    @if (taskList.Count() > 0)
+                    {
+                        <button @onclick="deleteAllTasks" class="w-50 btn btn-md my-3 bg-warning">Remove all tasks</button>
+                    }
                 }
             }
-        </AuthorizeView>
-    </div>
-    @if (taskList != null)
-    {
-        <div>
-            @if (taskList != null)
-            {
-                <ul>
-                    @foreach (ToDoItem task in taskList)
-                    {
-                        <li class="border_list">
-                            <span style="display: flex">
-                                <p>Task: @task.Title</p>
-                                <button @onclick="() => removeItem(task.Id)" class="w-25 btn btn-lg btn-primary bg-warning">Remove</button>
-                            </span>
-                        </li>
-                    }
-                </ul>
-            }
         </div>
+        @if (taskList != null)
+        {
+            <table>
+                <tr>
+                    <th>
+                        Task
+                    </th>
+                    @if (userIsAdmin)
+                    {
+                        <th>Action</th>
+                    }
+                </tr>
+                @foreach (ToDoItem task in taskList)
+                {   
+                <tr>
+                    <td>
+                        @task.Title
+                    </td>
+                    @if (userIsAdmin)
+                    {
+                        <td>
+                                <button @onclick="() => removeItem(task.Id)" class="w-50 btn btn-md bg-danger">Remove</button>
+                        </td>
+                    }
+                </tr>
+                }
+
+            </table>
+        }
+    </div>
+</AuthorizeView>
+<style>
+
+    table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
     }
 
-</div>
-<style>
-    .border_list {
-        border: 1px solid rgba(0, 0, 0, 0.8);
-        width: 450px;
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    tr:nth-child(even) {
+        background-color: #dddddd;
     }
 </style>
 
@@ -52,15 +81,26 @@
     private string newTaskTitle = string.Empty;
     List<ToDoItem> taskList;
     string userEmail = string.Empty;
+    bool userIsAdmin = false;
+    bool isLoading = false;
 
     private async Task refresh(bool response)
     {
-        if (response)
+        if (response && !isLoading)
         {
+            isLoading = true;
             await getTaskList();
+            await checkIfAdmin();
             clearFields();
             StateHasChanged();
+            isLoading = false;
         }
+    }
+
+    private async Task checkIfAdmin()
+    {
+        userIsAdmin = await _roleService.IsUserAdmin(userEmail, _serviceProvider);
+        await refresh(true);
     }
 
     private void clearFields()
@@ -75,8 +115,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await getTaskList();
         userEmail = httpContextAccessor!.HttpContext!.User!.Identity!.Name!;
+        await refresh(true);
     }
 
     private async void addTask()

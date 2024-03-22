@@ -47,9 +47,10 @@ public class CprService : ICprService
                 ApplicationUser? appUser = await _userManager.FindByEmailAsync(userEmail.ToUpper());
                 if (appUser != null)
                 {
-
-                    string? key = new AsymmetricEncryptionService()._privateKey;
-                    Cpr cprRecord = new Cpr { UserMail = appUser.Email!.ToLower(), IdentityId = Guid.Parse(appUser.Id), CprNumber = hashedCpr, privateKey = key };
+                    var encryptionService = new AsymmetricEncryptionService();
+                    string? privatekey = encryptionService._privateKey;
+                    string? publickey = encryptionService._publicKey;
+                    Cpr cprRecord = new Cpr { UserMail = appUser.Email!.ToLower(), IdentityId = Guid.Parse(appUser.Id), CprNumber = hashedCpr, PrivateKey = privatekey, PublicKey = publickey };
                     _dataDbContext.Cprs.Add(cprRecord);
                     var response = await _roleService.CreateUserRole("CPR", _serviceProvider, userEmail);
                     _logger.LogInformation($"Response 2: {response}");

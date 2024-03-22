@@ -13,6 +13,7 @@ namespace Matias_ToDo_DoubleDB.Data.Models.Entities
 
         public string UserMail { get; set; } = string.Empty;
 
-        public string privateKey { get; set; } = string.Empty;
+        public string PrivateKey { get; set; } = string.Empty;
+        public string PublicKey { get; set; } = string.Empty;
     }
 }

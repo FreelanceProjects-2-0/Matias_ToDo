@@ -13,32 +13,40 @@
     <Authorized>
         @if (!isVerified)
         {
-            
-        <div>
-            <h1>User: @context.User.Identity?.Name</h1>
-            <h4>Enter CPR-number:</h4>
-            <p>If already having the "CPR" role: Submit button should verify existing user and redirect to "to-do" - If user has entered wrong CPR BE ANGRY</p>
-            <input type="text" @bind-value="@cprNumber" />
-            <br />
-            @* <button @onclick="registerCpr">Submit</button> *@
-            <button class="button-85" role="button" @onclick="registerCpr">Submit</button>
+
+            <div>
+                <div>
+                    <h1>User: @context.User.Identity?.Name</h1>
+                    <h4>Enter CPR-number:</h4>
+                    <p>If already having the "CPR" role: Submit button should verify existing user and redirect to "to-do" - If user has entered wrong CPR BE ANGRY</p>
+                    <input type="text" @bind-value="@cprNumber" />
+                    <button @onclick="registerCpr" class="w-15 btn btn-md btn-primary my-3">
+                        Submit
+                    </button>
+                </div>
+
+                @if (failed)
+                {
+                    <b1>Wrong CPR entered</b1>
+                }
             </div>
         }
         else
         {
-            <ToDo/>
+            <ToDo />
         }
     </Authorized>
     <NotAuthorized>
         <h1>No permissions for this site</h1>
     </NotAuthorized>
 </AuthorizeView>
-                                                        
+
 @code {
     private bool isVerified = false;
-    private bool loading = false;                                    
-    private string cprNumber = string.Empty;                          
-    protected async Task registerCpr()                      
+    private bool loading = false;
+    private string cprNumber = string.Empty;
+    private bool failed = false;
+    protected async Task registerCpr()
     {
         if (!loading)
         {
@@ -48,78 +56,15 @@
             Logger.LogInformation($"Response : {response}");
             if (response)
             {
+                failed = false;
                 isVerified = true;
+            }
+            else
+            {
+                failed = true;
+                isVerified = false;
             }
             loading = false;
         }
     }
 }
-
-<style>
-    .button-85 {
-  padding: 0.6em 2em;
-  border: none;
-  outline: none;
-  color: rgb(255, 255, 255);
-  background: #111;
-  cursor: pointer;
-  position: relative;
-  z-index: 0;
-  border-radius: 10px;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
-}
-
-.button-85:before {
-  content: "";
-  background: linear-gradient(
-    45deg,
-    #ff0000,
-    #ff7300,
-    #fffb00,
-    #48ff00,
-    #00ffd5,
-    #002bff,
-    #7a00ff,
-    #ff00c8,
-    #ff0000
-  );
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  background-size: 400%;
-  z-index: -1;
-  filter: blur(5px);
-  -webkit-filter: blur(5px);
-  width: calc(100% + 4px);
-  height: calc(100% + 4px);
-  animation: glowing-button-85 20s linear infinite;
-  transition: opacity 0.3s ease-in-out;
-  border-radius: 10px;
-}
-
-@@keyframes glowing-button-85 {
-  0% {
-    background-position: 0 0;
-  }
-  50% {
-    background-position: 400% 0;
-  }
-  100% {
-    background-position: 0 0;
-  }
-}
-
-.button-85:after {
-  z-index: -1;
-  content: "";
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: #222;
-  left: 0;
-  top: 0;
-  border-radius: 10px;
-}
-</style>

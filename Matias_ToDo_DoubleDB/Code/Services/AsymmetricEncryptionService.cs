@@ -5,10 +5,8 @@ namespace Matias_ToDo_DoubleDB.Code.Services
 {
     public class AsymmetricEncryptionService : IAsymmetricEncryptionService
     {
-        private string pKey = "<RSAKeyValue><Modulus>2+zHsIEkbSYcH7rX2L/7xckWqf/5pKYHQAlmVp2g6RI+hsYBKTQ2KGsFVDfb7sc9ioypu3G4l9QQjPRGulkzxYFI6BMYS667MT7Vqih86+1d5i15lAfG600X14TuQKzTvvSD0h1pdmJf2ffnUz2m7csB4Y/tZm2fWRxLpdy4k6ko2KD3oYp3ckLbhfKpAQAmdO7thzjcx7JM7+08xs4iSPVBeQ58z7sYWHnvUfgLNAURmwR0kObHakcj33K1lyK9P99vvrYJGfGR8pUeopq5N6guCLWjG5naE5a18ZfPsa/GLel8AR5YuI64GAllTTJl1dffcAeKt5qxqsRIroKa1Q==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
-        
         public string? _privateKey { get; private set; }
-        public string? _publicKey;
+        public string? _publicKey { get; private set; }
 
 
         public AsymmetricEncryptionService()
@@ -16,26 +14,27 @@ namespace Matias_ToDo_DoubleDB.Code.Services
             using (RSA rsa = RSA.Create())
             {
                 RSAParameters privateKeyParameters = rsa.ExportParameters(true);
+                RSAParameters publicKeyParameters = rsa.ExportParameters(false);
 
                 _privateKey = rsa.ToXmlString(true);
-                _publicKey = pKey;
+                _publicKey = rsa.ToXmlString(false);
             }
         }
 
-        public string EncryptAsymmetric(string inputText)
+        public string EncryptAsymmetric(string inputText, string publicKey)
         {
-            return Encryption.Encrypter(inputText, _publicKey);
+            return Encryption.Encrypter(inputText, publicKey);
         }
 
         public string DecryptAsymmetric(string inputText, string privateKey)
         {
-            using (RSA rsa = RSA.Create())
+            using (RSACryptoServiceProvider rsa = new())
             {
                 rsa.FromXmlString(privateKey);
 
                 byte[] byteArrayInputText = Convert.FromBase64String(inputText);
 
-                byte[] decryptedTextByteArray = rsa.Decrypt(byteArrayInputText, RSAEncryptionPadding.OaepSHA256);
+                byte[] decryptedTextByteArray = rsa.Decrypt(byteArrayInputText, true);
 
                 return System.Text.Encoding.UTF8.GetString(decryptedTextByteArray);
             }

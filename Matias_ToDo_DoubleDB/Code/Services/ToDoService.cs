@@ -26,7 +26,12 @@ namespace Matias_ToDo_DoubleDB.Code.Services
 
             if (userId == null) throw new Exception($"User with email {userEmail} not found.");
 
-            title = _encryptionService.EncryptAsymmetric(title);
+            var publicKey = await _dbContext.Cprs
+                    .Where(x => x.IdentityId == Guid.Parse(userId))
+                    .Select(z => z.PublicKey)
+                    .FirstOrDefaultAsync();
+            if (publicKey == null) throw new Exception($"No public key found for user id: {userId}");
+            title = _encryptionService.EncryptAsymmetric(title, publicKey);
             var item = new ToDoItem() { Title = title, IdentityId = Guid.Parse(userId) };
             await _dbContext.AddAsync(item);
             return await _dbContext.SaveChangesAsync() > 0;
@@ -46,7 +51,7 @@ namespace Matias_ToDo_DoubleDB.Code.Services
 
                 string? userPrivateKey = await _dbContext.Cprs
                     .Where(x => x.IdentityId == Guid.Parse(userId))
-                    .Select(z => z.privateKey)
+                    .Select(z => z.PrivateKey)
                     .FirstOrDefaultAsync();
 
                 if (userPrivateKey != null)

@@ -3,7 +3,8 @@
     public interface IAsymmetricEncryptionService
     {
         public string _privateKey { get; }
-        public string EncryptAsymmetric(string inputText);
+        public string _publicKey { get; }
+        public string EncryptAsymmetric(string inputText, string publicKey);
         public string DecryptAsymmetric(string inputText, string? userPrivateKey);
     }
 }
