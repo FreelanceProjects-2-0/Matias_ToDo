@@ -4,8 +4,9 @@
 @inject IServiceProvider _serviceProvider;
 @inject ILogger<RegisterCpr> Logger
 @inject IHttpContextAccessor httpContextAccessor
-@* @inject IHashingService _hashingService *@
 @inject NavigationManager NavManager
+@inject IAsymmetricEncryptionService _encryptionService
+@inject IHttpContextAccessor httpContextAccessor
 
 <PageTitle>Register CPR</PageTitle>
 

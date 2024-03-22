@@ -1,4 +1,5 @@
 ﻿using Matias_ToDo_DoubleDB.Data;
+using Matias_ToDo_DoubleDB.Data.Models;
 using Matias_ToDo_DoubleDB.Data.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,8 +19,9 @@ public class CprService : ICprService
     private readonly ILogger _logger;
     UserManager<ApplicationUser> _userManager;
     IServiceProvider _serviceProvider;
+    IAsymmetricEncryptionService _encryptionService;
 
-    public CprService(ApplicationDbContext appDbContext, DataDBContext dataDbContext, IRoleService roleService, ILogger<CprService> logger, IServiceProvider serviceProvider, IHashingService hashingService)
+    public CprService(ApplicationDbContext appDbContext, DataDBContext dataDbContext, IRoleService roleService, ILogger<CprService> logger, IServiceProvider serviceProvider, IHashingService hashingService, IAsymmetricEncryptionService encryptionService)
     {
         _appDbContext = appDbContext;
         _dataDbContext = dataDbContext;
@@ -28,6 +30,7 @@ public class CprService : ICprService
         _userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         _roleService = roleService;
         _hashingService = hashingService;
+        _encryptionService = encryptionService;
     }
 
     /// <summary>
@@ -59,7 +62,12 @@ public class CprService : ICprService
             }
             else if (await CheckCprAsync(cpr, userEmail))
             {
-                _logger.LogInformation($"Davs");
+                var userId = await _userManager.Users.Where(x => x.NormalizedEmail == userEmail.ToUpper()).Select(x => x.Id).FirstOrDefaultAsync();
+                var userKeys = await _dataDbContext.Cprs.Where(x => x.IdentityId == Guid.Parse(userId)).Select(x => new UserKeys{ PrivateKey = x.PrivateKey, PublicKey= x.PublicKey}).FirstOrDefaultAsync();
+                if (userKeys != null)
+                {
+                    var response = _encryptionService.UpdateKeys(userKeys.PrivateKey, userKeys.PublicKey);
+                }
                 return true;
             }
             return false;

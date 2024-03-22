@@ -31,7 +31,9 @@ namespace Matias_ToDo_DoubleDB.Code.Services
                     .Select(z => z.PublicKey)
                     .FirstOrDefaultAsync();
             if (publicKey == null) throw new Exception($"No public key found for user id: {userId}");
-            title = _encryptionService.EncryptAsymmetric(title, publicKey);
+
+            //title = _encryptionService.EncryptAsymmetric(title);
+
             var item = new ToDoItem() { Title = title, IdentityId = Guid.Parse(userId) };
             await _dbContext.AddAsync(item);
             return await _dbContext.SaveChangesAsync() > 0;
@@ -60,16 +62,16 @@ namespace Matias_ToDo_DoubleDB.Code.Services
                         .Where(x => x.IdentityId == Guid.Parse(userId))
                         .ToListAsync();
                 }
-                var decryptedTasks = encryptedTasks
-                    .Select(x => new ToDoItem {
-                        Id = x.Id,
-                        IdentityId = x.IdentityId,
-                        Title = _encryptionService
-                            .DecryptAsymmetric(x.Title, userPrivateKey)
-                    })
-                    .ToList();
+                //var decryptedTasks = encryptedTasks
+                //    .Select(x => new ToDoItem {
+                //        Id = x.Id,
+                //        IdentityId = x.IdentityId,
+                //        Title = _encryptionService
+                //            .DecryptAsymmetric(x.Title)
+                //    })
+                //    .ToList();
 
-                return decryptedTasks;
+                return encryptedTasks;
             }
             catch (Exception ex) { throw new Exception($"Something went wrong while receiving the tasklist {ex}"); }
         }

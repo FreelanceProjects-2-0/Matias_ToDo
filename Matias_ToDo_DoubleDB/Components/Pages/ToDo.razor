@@ -1,28 +1,44 @@
-﻿@using Matias_ToDo_DoubleDB.Data.Models.Entities;
+﻿@using Matias_ToDo_DoubleDB.Code.Services
+@using Matias_ToDo_DoubleDB.Data.Models.Entities;
 @inject Code.Services.IToDoService _todoService
 @inject IHttpContextAccessor httpContextAccessor
 @inject ILogger<ToDo> Logger
 @inject AuthenticationStateProvider authStateProvider
 @inject Code.Services.IRoleService _roleService
 @inject IServiceProvider _serviceProvider
+@inject IAsymmetricEncryptionService _encryptionService
 
 <PageTitle>ToDo</PageTitle>
 <AuthorizeView>
-
-    @* <button @onclick="() => refresh(true)" class="w-15 btn btn-lg btn-primary my-3">Refresh</button> *@
-    <h4>Is Admin : @userIsAdmin</h4>
+    <div class="bg-black bg-opacity-10 p-2 rounded-1">
+        <h6>DEBUGGING PANEL</h6>
+        @if (!userIsAdmin)
+        { 
+        <button @onclick="addAdminToUser" class="w-15  btn btn-md btn-primary my-3">
+            Add admin
+        </button>
+        }
+        else
+        {
+        <button @onclick="removeAdminFromUser" class="w-15  btn btn-md btn-primary my-3">
+            Remove admin
+        </button>
+        }
+        <h6>Is Admin : @userIsAdmin</h6>
+    </div>
+    <br />
 
     <div class="w-50 bg-opacity-25 bg-black rounded-1" style="margin-inline: auto;">
         <div class="text-center py-2">
-            <input @bind="newTaskTitle" placeholder="Task here" />
-            <button @onclick="addTask" class="w-50 btn btn-md bg-info">Add</button><br />
+            <input @bind="newTaskTitle" placeholder="Task here" class="w-50" />
+            <button @onclick="addTask" class="w-25 btn btn-md bg-info">Add</button><br />
             @if (userIsAdmin)
             {
                 @if (taskList != null)
                 {
                     @if (taskList.Count() > 0)
                     {
-                        <button @onclick="deleteAllTasks" class="w-50 btn btn-md my-3 bg-warning">Remove all tasks</button>
+                        <button @onclick="deleteAllTasks" class="w-75 btn btn-md my-3 bg-warning">Remove all tasks</button>
                     }
                 }
             }
@@ -40,18 +56,18 @@
                     }
                 </tr>
                 @foreach (ToDoItem task in taskList)
-                {   
-                <tr>
-                    <td>
-                        @task.Title
-                    </td>
-                    @if (userIsAdmin)
-                    {
+                {
+                    <tr>
                         <td>
-                                <button @onclick="() => removeItem(task.Id)" class="w-50 btn btn-md bg-danger">Remove</button>
+                            @_encryptionService.DecryptAsymmetric(task.Title)
                         </td>
-                    }
-                </tr>
+                        @if (userIsAdmin)
+                        {
+                            <td>
+                                <button @onclick="() => removeItem(task.Id)" class="btn btn-md bg-danger">Remove</button>
+                            </td>
+                        }
+                    </tr>
                 }
 
             </table>
@@ -83,6 +99,29 @@
     string userEmail = string.Empty;
     bool userIsAdmin = false;
     bool isLoading = false;
+
+    protected async Task removeAdminFromUser()
+    {
+        Logger.LogInformation($"Email : {userEmail}");
+        if (!String.IsNullOrEmpty(userEmail.Trim()))
+        {
+            var response = await _roleService.RemoveUserRole("Admin", _serviceProvider, userEmail);
+            Logger.LogInformation($"removeAdminFromUser : {response}");
+            await refresh(response);
+        } 
+    }
+
+    protected async Task addAdminToUser()
+    {
+        Logger.LogInformation($"Email : {userEmail}");
+        if (!String.IsNullOrEmpty(userEmail.Trim()))
+        {
+            var response = await _roleService.CreateUserRole("Admin", _serviceProvider, userEmail);
+            Logger.LogInformation($"addAdminToUser : {response}");
+            await refresh(response);
+        }
+    }
+
 
     private async Task refresh(bool response)
     {
@@ -121,7 +160,8 @@
 
     private async void addTask()
     {
-        var response = await _todoService.AddTask(userEmail, newTaskTitle);
+        string encryptedTitle = _encryptionService.EncryptAsymmetric(newTaskTitle);
+        var response = await _todoService.AddTask(userEmail, encryptedTitle);
         await refresh(response);
     }
     private async void removeItem(Guid id)

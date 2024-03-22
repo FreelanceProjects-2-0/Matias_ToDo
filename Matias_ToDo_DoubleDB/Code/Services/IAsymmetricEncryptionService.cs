@@ -4,7 +4,8 @@
     {
         public string _privateKey { get; }
         public string _publicKey { get; }
-        public string EncryptAsymmetric(string inputText, string publicKey);
-        public string DecryptAsymmetric(string inputText, string? userPrivateKey);
+        public string EncryptAsymmetric(string inputText);
+        public string DecryptAsymmetric(string inputText);
+        public bool UpdateKeys(string privateKey, string publicKey);
     }
 }

@@ -33,6 +33,23 @@ public class RoleService : IRoleService
         return roleSuccess | userSuccess;
     }
 
+    public async Task<bool> RemoveUserRole(string role, IServiceProvider serviceProvider, string userEmail)
+    {
+        UserManager<ApplicationUser> userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        // Call the manager as we are not allowed to access Identity
+        bool userSuccess = false;
+
+        ApplicationUser? identityUser = await userManager.FindByEmailAsync(userEmail.ToUpper());
+
+        if (identityUser != null)
+        {
+            IdentityResult userResponse = await userManager.RemoveFromRoleAsync(identityUser, role);
+            userSuccess = userResponse.Succeeded;
+        }
+
+        return userSuccess;
+    }
+
     public async Task<bool> IsUserAdmin(string userEmail, IServiceProvider serviceProvider)
     {
         UserManager<ApplicationUser> userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
